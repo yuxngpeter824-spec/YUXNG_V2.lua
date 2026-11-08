@@ -1,33 +1,28 @@
-
---========================================
+--====================================
 -- YUXNG HUB V2
--- Rayfield UI
---========================================
+-- UI FOUNDATION
+--====================================
 
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
-
 local Player = Players.LocalPlayer
 
--- DEFAULT CONFIG
-local Defaults = {
+local Config = {
     Cosmic = true,
     Divine = true,
     Eternal = true,
     Secret = true,
+
     AutoCollect = false,
     AutoTreadmill = false,
     AutoEvent = false,
+
     SpeedEnabled = false,
     Speed = 16
 }
 
-local Config = table.clone(Defaults)
-
--- RAYFIELD
-local Rayfield = loadstring(game:HttpGet(
-    "https://sirius.menu/rayfield"
-))()
+local Rayfield = require(
+    game.ReplicatedStorage:WaitForChild("Rayfield")
+)
 
 local Window = Rayfield:CreateWindow({
     Name = "YUXNG HUB | Steal an Egg",
@@ -41,7 +36,6 @@ local Window = Rayfield:CreateWindow({
     KeySystem = false
 })
 
--- TABS
 local Main = Window:CreateTab("Main")
 local Pets = Window:CreateTab("Pet Rarity")
 local Collect = Window:CreateTab("Auto Collect")
@@ -50,45 +44,39 @@ local Events = Window:CreateTab("Auto Event")
 local Speed = Window:CreateTab("Speed")
 local Configs = Window:CreateTab("Configs")
 
--- MAIN
-Main:CreateSection("Welcome")
-
 Main:CreateParagraph({
     Title = "YUXNG HUB V2",
-    Content = "Welcome to your custom Steal an Egg hub!"
+    Content = "Welcome to YUXNG HUB!"
 })
 
 -- PET RARITY
-Pets:CreateSection("Choose Pet Rarities")
 
-local function CreateRarity(name)
+local Rarities = {
+    "Cosmic",
+    "Divine",
+    "Eternal",
+    "Secret"
+}
+
+for _, rarity in ipairs(Rarities) do
     Pets:CreateToggle({
-        Name = name,
-        CurrentValue = Config[name],
-        Flag = name,
+        Name = rarity,
+        CurrentValue = Config[rarity],
         Callback = function(value)
-            Config[name] = value
+            Config[rarity] = value
         end
     })
 end
 
-CreateRarity("Cosmic")
-CreateRarity("Divine")
-CreateRarity("Eternal")
-CreateRarity("Secret")
-
 Pets:CreateButton({
     Name = "Select All",
     Callback = function()
-        for _, name in ipairs({
-            "Cosmic", "Divine", "Eternal", "Secret"
-        }) do
-            Config[name] = true
+        for _, rarity in ipairs(Rarities) do
+            Config[rarity] = true
         end
         Rayfield:Notify({
             Title = "YUXNG HUB",
-            Content = "All rarities selected!",
-            Duration = 3
+            Content = "All rarities selected!"
         })
     end
 })
@@ -96,143 +84,87 @@ Pets:CreateButton({
 Pets:CreateButton({
     Name = "Deselect All",
     Callback = function()
-        for _, name in ipairs({
-            "Cosmic", "Divine", "Eternal", "Secret"
-        }) do
-            Config[name] = false
+        for _, rarity in ipairs(Rarities) do
+            Config[rarity] = false
         end
         Rayfield:Notify({
             Title = "YUXNG HUB",
-            Content = "All rarities deselected!",
-            Duration = 3
+            Content = "All rarities deselected!"
         })
     end
 })
 
--- AUTO COLLECT
-Collect:CreateSection("Pet Collection")
+-- FEATURE SWITCHES
 
-Collect:CreateToggle({
-    Name = "Auto Collect",
-    CurrentValue = false,
-    Flag = "AutoCollect",
-    Callback = function(value)
-        Config.AutoCollect = value
-        print("Auto Collect:", value)
-    end
-})
+local function AddToggle(tab, name, key)
+    tab:CreateToggle({
+        Name = name,
+        CurrentValue = Config[key],
+        Callback = function(value)
+            Config[key] = value
+        end
+    })
+end
 
--- TREADMILL
-Treadmill:CreateSection("Treadmill Automation")
-
-Treadmill:CreateToggle({
-    Name = "Auto Treadmill",
-    CurrentValue = false,
-    Flag = "AutoTreadmill",
-    Callback = function(value)
-        Config.AutoTreadmill = value
-        print("Auto Treadmill:", value)
-    end
-})
-
--- EVENTS
-Events:CreateSection("Event Automation")
-
-Events:CreateToggle({
-    Name = "Auto Event",
-    CurrentValue = false,
-    Flag = "AutoEvent",
-    Callback = function(value)
-        Config.AutoEvent = value
-        print("Auto Event:", value)
-    end
-})
+AddToggle(Collect, "Auto Collect", "AutoCollect")
+AddToggle(Treadmill, "Auto Treadmill", "AutoTreadmill")
+AddToggle(Events, "Auto Event", "AutoEvent")
 
 -- SPEED
-Speed:CreateSection("Movement")
 
-local function ApplySpeed()
-    local Character = Player.Character
-    local Humanoid = Character and
-        Character:FindFirstChildOfClass("Humanoid")
-
-    if Humanoid then
-        Humanoid.WalkSpeed =
-            Config.SpeedEnabled and Config.Speed or 16
+Speed:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16, 350},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(value)
+        Config.Speed = value
     end
-end
+})
 
 Speed:CreateToggle({
     Name = "Enable Speed",
     CurrentValue = false,
-    Flag = "SpeedEnabled",
     Callback = function(value)
         Config.SpeedEnabled = value
-        ApplySpeed()
     end
 })
 
-Speed:CreateSlider({
-    Name = "Walk Speed",
-    Range = {16, 350},
-    Increment = 1,
-    Suffix = "Speed",
-    CurrentValue = 16,
-    Flag = "Speed",
-    Callback = function(value)
-        Config.Speed = value
-        ApplySpeed()
-    end
-})
-
-Speed:CreateButton({
-    Name = "Reset Speed",
-    Callback = function()
-        Config.Speed = 16
-        Config.SpeedEnabled = false
-        ApplySpeed()
-    end
-})
-
--- CHARACTER RESPAWN
-Player.CharacterAdded:Connect(function()
-    task.wait(1)
-    ApplySpeed()
-end)
-
--- CONFIGS
-Configs:CreateSection("Configuration")
+-- CONFIG
 
 Configs:CreateButton({
     Name = "Show Current Config",
     Callback = function()
-        print(HttpService:JSONEncode(Config))
-        Rayfield:Notify({
-            Title = "YUXNG HUB",
-            Content = "Config printed to console!",
-            Duration = 3
-        })
+        print("YUXNG CONFIG:")
+        for key, value in pairs(Config) do
+            print(key, value)
+        end
     end
 })
 
 Configs:CreateButton({
-    Name = "Reset All Settings",
+    Name = "Reset Config",
     Callback = function()
-        Config = table.clone(Defaults)
-        ApplySpeed()
+        Config = {
+            Cosmic = true,
+            Divine = true,
+            Eternal = true,
+            Secret = true,
+            AutoCollect = false,
+            AutoTreadmill = false,
+            AutoEvent = false,
+            SpeedEnabled = false,
+            Speed = 16
+        }
 
         Rayfield:Notify({
             Title = "YUXNG HUB",
-            Content = "Settings reset!",
-            Duration = 3
+            Content = "Configuration reset!"
         })
     end
 })
 
 Rayfield:Notify({
-    Title = "YUXNG HUB V2",
-    Content = "Successfully loaded!",
-    Duration = 5
+    Title = "YUXNG HUB",
+    Content = "Version 2.0 loaded!"
 })
-
-print("YUXNG HUB V2 loaded!")
